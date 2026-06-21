@@ -1,6 +1,6 @@
 # 🚀 Terraform Multi-Environment CI/CD Demo Guide
 
-A comprehensive demonstration of a **production-grade Infrastructure as Code (IaC)** pipeline using Terraform, GitHub Actions, and AWS.
+A comprehensive demonstration of a **production-grade Infrastructure as Code (IaC)** pipeline using Terraform, GitHub Actions, and AWS. 
 
 ---
 
