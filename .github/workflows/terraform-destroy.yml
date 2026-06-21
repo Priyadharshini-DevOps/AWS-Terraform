@@ -47,6 +47,31 @@ jobs:
         with:
           terraform_version: 1.13.3
 
+      - name: Setup S3 Backend Bucket
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          # Create bucket if it doesn't exist
+          aws s3api head-bucket --bucket staging-my-terraform-bucket-yugapranav --region us-east-1 2>/dev/null || \
+          aws s3 mb s3://staging-my-terraform-bucket-yugapranav --region us-east-1
+          
+          # Enable versioning
+          aws s3api put-bucket-versioning \
+            --bucket staging-my-terraform-bucket-yugapranav \
+            --versioning-configuration Status=Enabled
+          
+          # Enable encryption
+          aws s3api put-bucket-encryption \
+            --bucket staging-my-terraform-bucket-yugapranav \
+            --server-side-encryption-configuration '{
+              "Rules": [{
+                "ApplyServerSideEncryptionByDefault": {
+                  "SSEAlgorithm": "AES256"
+                }
+              }]
+            }' || true
+
       - name: Terraform Init
         run: terraform init
 
