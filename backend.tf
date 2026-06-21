@@ -1,9 +1,8 @@
 terraform {
   backend "s3" {
-    bucket       = "staging-my-terraform-bucket-yugapranav" # Replace with your S3 bucket name
-    key          = "terraform/state/main/terraform.tfstate"
-    region       = "us-east-1" # Replace with your region
-    use_lockfile = false       # S3 Native Locking (No DynamoDB needed)
-    encrypt      = true
+    bucket  = "staging-my-terraform-bucket-yugapranav"
+    key     = "terraform/state/main/terraform.tfstate"
+    region  = "us-east-1"
+    encrypt = true
   }
 }
