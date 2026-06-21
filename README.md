@@ -7,7 +7,7 @@ This repository follows the **Infrastructure as Code (IaC)** best practice of "S
 ### 🔄 CI/CD Workflow (Infrastructure Only)
 This repository uses a dedicated GitHub Actions workflow (`.github/workflows/terraform.yml`) that:
 1.  **Plans** changes on Pull Requests (with Security & Linting checks).
-2.  **Applies** changes to `dev`, `test`, or `prod` environments based on the branch.
+2.  **Applies** changes to `dev`, `test`, or `prod` environments based on the branches.
 
 ### 🤝 Integration with Application Code
 In a real-world scenario, this repository would interface with a separate **Application Repository**:
