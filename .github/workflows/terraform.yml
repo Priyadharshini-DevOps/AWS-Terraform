@@ -38,6 +38,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Determine Environment
+        id: determine-env
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BRANCH_NAME="${{ github.base_ref }}"
+          else
+            BRANCH_NAME="${{ github.ref_name }}"
+          fi
+          
+          if [[ "$BRANCH_NAME" == "main" ]]; then
+            echo "workspace=prod" >> $GITHUB_OUTPUT
+          elif [[ "$BRANCH_NAME" == "test" ]]; then
+            echo "workspace=test" >> $GITHUB_OUTPUT
+          else
+            echo "workspace=dev" >> $GITHUB_OUTPUT
+          fi
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -68,47 +85,79 @@ jobs:
           ignore-unfixed: true
           severity: "CRITICAL,HIGH"
 
+      - name: Setup S3 Backend Bucket
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          # Create bucket if it doesn't exist
+          aws s3api head-bucket --bucket staging-my-terraform-bucket-yugapranav --region us-east-1 2>/dev/null || \
+          aws s3 mb s3://staging-my-terraform-bucket-yugapranav --region us-east-1
+          
+          # Enable versioning
+          aws s3api put-bucket-versioning \
+            --bucket staging-my-terraform-bucket-yugapranav \
+            --versioning-configuration Status=Enabled
+          
+          # Enable encryption
+          aws s3api put-bucket-encryption \
+            --bucket staging-my-terraform-bucket-yugapranav \
+            --server-side-encryption-configuration '{
+              "Rules": [{
+                "ApplyServerSideEncryptionByDefault": {
+                  "SSEAlgorithm": "AES256"
+                }
+              }]
+            }' || true
+
       - name: Terraform Init
         id: init
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: terraform init
 
       - name: Terraform Format
         id: fmt
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: terraform fmt -check
 
       - name: Terraform Validate
         id: validate
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: terraform validate
 
       - name: Set Environment Variables
         id: env-vars
         run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            BRANCH_NAME="${{ github.base_ref }}"
-          else
-            BRANCH_NAME="${{ github.ref_name }}"
-          fi
-
-          if [[ "$BRANCH_NAME" == "main" ]]; then
-            echo "WORKSPACE_NAME=prod" >> $GITHUB_ENV
-            echo "tf_workspace=prod" >> $GITHUB_OUTPUT
+          ENV="${{ steps.determine-env.outputs.workspace }}"
+          echo "WORKSPACE_NAME=$ENV" >> $GITHUB_ENV
+          echo "tf_workspace=$ENV" >> $GITHUB_OUTPUT
+          
+          if [[ "$ENV" == "prod" ]]; then
             echo "TF_VAR_FILE=prod.tfvars" >> $GITHUB_ENV
-          elif [[ "$BRANCH_NAME" == "test" ]]; then
-            echo "WORKSPACE_NAME=test" >> $GITHUB_ENV
-            echo "tf_workspace=test" >> $GITHUB_OUTPUT
+          elif [[ "$ENV" == "test" ]]; then
             echo "TF_VAR_FILE=test.tfvars" >> $GITHUB_ENV
           else
-            echo "WORKSPACE_NAME=dev" >> $GITHUB_ENV
-            echo "tf_workspace=dev" >> $GITHUB_OUTPUT
             echo "TF_VAR_FILE=dev.tfvars" >> $GITHUB_ENV
           fi
 
       - name: Select Terraform Workspace
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           terraform workspace select $WORKSPACE_NAME || terraform workspace new $WORKSPACE_NAME
 
       - name: Terraform Plan
         id: plan
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: terraform plan -var-file=$TF_VAR_FILE -no-color -input=false -out=tfplan
         continue-on-error: true
 
@@ -172,8 +221,36 @@ jobs:
         with:
           terraform_version: 1.13.3
 
+      - name: Setup S3 Backend Bucket
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          # Create bucket if it doesn't exist
+          aws s3api head-bucket --bucket staging-my-terraform-bucket-yugapranav --region us-east-1 2>/dev/null || \
+          aws s3 mb s3://staging-my-terraform-bucket-yugapranav --region us-east-1
+          
+          # Enable versioning
+          aws s3api put-bucket-versioning \
+            --bucket staging-my-terraform-bucket-yugapranav \
+            --versioning-configuration Status=Enabled
+          
+          # Enable encryption
+          aws s3api put-bucket-encryption \
+            --bucket staging-my-terraform-bucket-yugapranav \
+            --server-side-encryption-configuration '{
+              "Rules": [{
+                "ApplyServerSideEncryptionByDefault": {
+                  "SSEAlgorithm": "AES256"
+                }
+              }]
+            }' || true
+
       - name: Terraform Init
         run: terraform init
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Set Environment Variables
         id: env-vars
@@ -191,6 +268,9 @@ jobs:
           fi
 
       - name: Select Terraform Workspace
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           terraform workspace select $WORKSPACE_NAME || terraform workspace new $WORKSPACE_NAME
 
@@ -198,7 +278,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: tfplan-${{ env.WORKSPACE_NAME }}
-          path: .
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve -input=false tfplan
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: terraform apply -auto-approve tfplan

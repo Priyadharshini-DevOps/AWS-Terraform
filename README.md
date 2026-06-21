@@ -12,7 +12,7 @@ This repository uses a dedicated GitHub Actions workflow (`.github/workflows/ter
 ### 🤝 Integration with Application Code
 In a real-world scenario, this repository would interface with a separate **Application Repository**:
 1.  **App Repo:** Builds the application and creates an AMI (Amazon Machine Image).
-2.  **Infra Repo (This one):** Receives the new `ami_id` and performs a rolling update of the Auto Scaling Group.
+2.  **Infra Repo (This one):** Receives the new `ami_id` and performs a rolling update of the Auto Scaling Group
 
 *Note: For demonstration purposes, this repo currently uses a `user_data.sh` script to bootstrap Nginx, simulating the application layer.*
 
