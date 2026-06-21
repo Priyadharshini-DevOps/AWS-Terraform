@@ -1,0 +1,83 @@
+# ======================
+# Terraform State Files
+# ======================
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# ======================
+# Terraform Lock Files
+# ======================
+.terraform.lock.hcl
+
+# ======================
+# Terraform Directories
+# ======================
+.terraform/
+terraform.tfstate.d/
+
+# ======================
+# Terraform Plan Files
+# ======================
+*.tfplan
+tfplan*
+*.plan
+
+# ======================
+# Terraform Var Files
+# (comment out if you want to track these)
+# ======================
+*.tfvars
+*.tfvars.json
+
+# ======================
+# Terraform Override Files
+# ======================
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# ======================
+# Terraform Crash Logs
+# ======================
+crash.log
+crash.*.log
+
+# ======================
+# Sensitive Files
+# ======================
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.auto.tfvars
+sensitive.tfvars
+
+# ======================
+# Environment Files
+# ======================
+.env
+.env.*
+*.env
+
+# ======================
+# OS Files
+# ======================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ======================
+# IDE / Editor
+# ======================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ======================
+# CI/CD
+# ======================
+.github/workflows/*.log
